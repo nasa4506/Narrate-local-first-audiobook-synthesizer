@@ -1,0 +1,153 @@
+.sidebar {
+  width: 264px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg);
+  padding: 28px 20px 24px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+}
+
+.sectionTitle {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
+.group {
+  margin-bottom: 22px;
+}
+
+.label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.labelRow .label {
+  margin-bottom: 0;
+}
+
+.value {
+  font-size: 0.72rem;
+  color: var(--text-primary);
+}
+
+.select {
+  font-family: inherit;
+}
+
+.voiceHint {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.slider {
+  width: 100%;
+  height: 18px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--border-strong);
+  border-radius: 1px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  transition: var(--transition-fast);
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.slider::-moz-range-track {
+  height: 2px;
+  background: var(--border-strong);
+  border-radius: 1px;
+}
+
+.slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 20px 0;
+}
+
+.foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.footLine {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+.footLine span:last-child {
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 100%;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 20px 16px;
+  }
+  .sticky {
+    position: static;
+  }
+  .foot {
+    display: none;
+  }
+}

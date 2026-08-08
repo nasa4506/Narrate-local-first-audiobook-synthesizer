@@ -1,0 +1,80 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg-inset);
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.value {
+  font-size: 0.68rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+  transition: background var(--transition-fast);
+}
+
+.fill {
+  height: 100%;
+  border-radius: 2px;
+  background: #fff;
+  transition: width 500ms cubic-bezier(0.4, 0, 0.2, 1), background var(--transition-fast);
+}
+
+.ok .fill {
+  background: #fff;
+}
+
+.amber .fill {
+  background: var(--warning);
+}
+
+.amber {
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.red .fill {
+  background: var(--danger);
+}
+
+.red {
+  border-color: rgba(248, 113, 113, 0.5);
+  animation: pulseRed 1.2s ease-in-out infinite;
+}
+
+@keyframes pulseRed {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(248, 113, 113, 0);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(248, 113, 113, 0.35);
+  }
+}
+
+.sub {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
