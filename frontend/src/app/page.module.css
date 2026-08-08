@@ -53,6 +53,16 @@
   background: rgba(248, 113, 113, 0.12);
 }
 
+.footNote {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  text-align: center;
+}
+
 @media (max-width: 900px) {
   .appLayout {
     flex-direction: column;

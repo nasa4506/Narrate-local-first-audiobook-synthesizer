@@ -28,6 +28,7 @@ from models import (
     AudiobookRequest,
     ChapterStatus,
     AudiobookStatus,
+    DeviceRequest,
     HealthResponse,
 )
 from tts_engine import engine
@@ -154,7 +155,7 @@ def _job_deadline(chapters: list[Chapter], workers: int) -> float:
     """Estimate how long a job may legitimately take before being marked dead."""
     total_chars = sum(len(ch.text) for ch in chapters)
     est_audio_sec = total_chars / 16.0
-    rtf_estimate = 0.2 if engine.cuda_available else 4.0
+    rtf_estimate = 0.2 if engine.device.startswith("cuda") else 4.0
     est_sec = est_audio_sec * rtf_estimate / max(workers, 1) + 240.0
     return min(max(est_sec, 600.0), 6 * 3600.0)
 
@@ -214,8 +215,29 @@ async def health():
         model="Kokoro-82M",
         cuda_available=engine.cuda_available,
         gpu_name=engine.gpu_name,
+        device=engine.device,
         total_voices=total,
     )
+
+
+@app.get("/api/devices")
+async def devices():
+    """List selectable compute devices and the currently active one."""
+    return {"devices": engine.available_devices(), "current": engine.device}
+
+
+@app.post("/api/device")
+async def set_device(req: DeviceRequest):
+    """Switch the compute device (GPU ↔ CPU). Rejected while a job is running."""
+    with _JOBS_LOCK:
+        if any(job["status"] == "running" for job in _JOBS.values()):
+            raise HTTPException(status_code=409, detail="Cannot switch device while a job is generating")
+    try:
+        engine.set_device(req.device)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    logger.info(f"Device switched to '{engine.device}'")
+    return {"device": engine.device}
 
 
 @app.get("/api/gpu")

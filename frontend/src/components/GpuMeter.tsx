@@ -34,12 +34,17 @@ export default function GpuMeter({
     );
   }
 
-  if (!stats.cuda_available) {
+  if (!stats.cuda_available || stats.device === "cpu") {
     return (
       <div className={styles.wrap}>
         <div className={styles.labelRow}>
           <span className={styles.label}>GPU memory</span>
           <span className={`mono ${styles.value}`}>CPU mode</span>
+        </div>
+        <div className={styles.sub}>
+          {stats.cuda_available
+            ? "GPU detected — switch device to use it"
+            : "no GPU detected on this machine"}
         </div>
       </div>
     );

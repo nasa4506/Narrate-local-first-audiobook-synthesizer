@@ -9,6 +9,8 @@ import {
   fetchHealth,
   fetchVoices,
   fetchGpuStats,
+  fetchDevices,
+  setDevice,
   startAudiobook,
   fetchAudiobookStatus,
   synthesize,
@@ -18,6 +20,7 @@ import {
   HealthInfo,
   VoiceCatalog,
   GPUStats,
+  DeviceInfo,
   ChapterState,
 } from "@/lib/api";
 import styles from "./page.module.css";
@@ -36,6 +39,7 @@ interface PersistedState {
   voice: string;
   speed: number;
   maxWorkers: number;
+  device: string | null;
   zipJobId: string | null;
   activeJobId: string | null;
   chapterCounter: number;
@@ -48,6 +52,7 @@ function defaultState(): PersistedState {
     voice: "af_heart",
     speed: 1.0,
     maxWorkers: 4,
+    device: null,
     zipJobId: null,
     activeJobId: null,
     chapterCounter: 0,
@@ -98,6 +103,12 @@ export default function Home() {
   const [gpuStats, setGpuStats] = useState<GPUStats | null>(null);
   const [connectionError, setConnectionError] = useState(false);
 
+  // ----- Compute device -----
+  const [devices, setDevices] = useState<DeviceInfo[] | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+  const [deviceBusy, setDeviceBusy] = useState(false);
+  const pendingDeviceRef = useRef<string | null>(null);
+
   // ----- Narrator settings -----
   const [langCode, setLangCode] = useState("a");
   const [selectedVoice, setSelectedVoice] = useState("af_heart");
@@ -139,6 +150,7 @@ export default function Home() {
             voice: selectedVoice,
             speed,
             maxWorkers,
+            device: selectedDevice,
             zipJobId,
             activeJobId: activeJobRef.current,
             chapterCounter,
@@ -149,16 +161,18 @@ export default function Home() {
       }
     }, 400);
     return () => clearTimeout(t);
-  }, [chapters, langCode, selectedVoice, speed, maxWorkers, zipJobId, isGenerating]);
+  }, [chapters, langCode, selectedVoice, speed, maxWorkers, zipJobId, isGenerating, selectedDevice]);
 
   // ----- Initial data load -----
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchHealth(), fetchVoices()])
-      .then(([h, v]) => {
+    Promise.all([fetchHealth(), fetchVoices(), fetchDevices()])
+      .then(([h, v, d]) => {
         if (!cancelled) {
           setHealth(h);
           setVoices(v);
+          setDevices(d.devices);
+          setSelectedDevice((prev) => prev ?? d.current);
           setConnectionError(false);
         }
       })
@@ -169,6 +183,49 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  // ----- Switch compute device (GPU ↔ CPU) -----
+  const handleDeviceChange = async (device: string) => {
+    if (deviceBusy || isGenerating || device === selectedDevice) return;
+    setDeviceBusy(true);
+    setError(null);
+    try {
+      await setDevice(device);
+      setSelectedDevice(device);
+      const h = await fetchHealth();
+      setHealth(h);
+      fetchGpuStats()
+        .then((s) => setGpuStats(s))
+        .catch(() => {});
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Device switch failed (is a job generating?)"
+      );
+    } finally {
+      setDeviceBusy(false);
+    }
+  };
+
+  // ----- Apply a persisted device once the device list is known -----
+  useEffect(() => {
+    const pending = pendingDeviceRef.current;
+    if (!pending || !devices || !health) return;
+    const available = devices.some((d) => d.device === pending);
+    if (!available) {
+      pendingDeviceRef.current = null;
+      return;
+    }
+    if (pending === health.device) {
+      pendingDeviceRef.current = null;
+      setSelectedDevice(pending);
+      return;
+    }
+    pendingDeviceRef.current = null;
+    handleDeviceChange(pending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [devices, health]);
 
   // ----- Auto-reconnect: retry the backend while unreachable -----
   const [retryTick, setRetryTick] = useState(0);
@@ -216,6 +273,8 @@ export default function Home() {
       setSpeed(persisted.speed);
       setMaxWorkers(persisted.maxWorkers);
       setZipJobId(persisted.zipJobId);
+
+      if (persisted.device) pendingDeviceRef.current = persisted.device;
 
       if (persisted.activeJobId) {
         activeJobRef.current = persisted.activeJobId;
@@ -481,6 +540,10 @@ export default function Home() {
         gpuStats={gpuStats}
         readyChapterCount={readyChapterCount}
         isGenerating={isGenerating}
+        devices={devices}
+        selectedDevice={selectedDevice}
+        deviceBusy={deviceBusy}
+        onDeviceChange={handleDeviceChange}
       />
 
       <main className={styles.mainContent}>
@@ -539,6 +602,11 @@ export default function Home() {
             hasResults={hasResults}
             generatingAll={isGenerating}
           />
+
+          <p className={`mono ${styles.footNote}`}>
+            Narrate runs 100% locally — no cloud, no uploads. Chapters
+            auto-save to this browser.
+          </p>
         </div>
       </main>
     </div>

@@ -10,6 +10,7 @@ Built on [Kokoro-82M](https://github.com/hexgrad/kokoro) (a lightweight, natural
 
 - **Chapter-based workflow** — paste a chapter, add another, edit freely; narrate them all with one click
 - **Parallel GPU synthesis** — all chapters are generated concurrently on your GPU (configurable 1–8 workers)
+- **Compute device selector** — pick GPU or CPU from the sidebar at any time (works on any machine; nothing is hardwired)
 - **Live progress** — per-chapter determinate progress bars from the model itself (`audio generated vs. estimate`), plus a continuous overall job bar with elapsed time
 - **GPU memory meter** — live VRAM usage while generating, and a projected-memory estimate that updates as you add chapters (pulses red when you approach the card's limit)
 - **Custom file names** — every chapter has its own output name; `Download all` bundles them into a ZIP
@@ -31,7 +32,7 @@ Built on [Kokoro-82M](https://github.com/hexgrad/kokoro) (a lightweight, natural
 ```bash
 # 1. Backend
 cd backend
-pip install -r requirements.txt
+pip install -r requirements.txt   # CPU-only machine? see the header of this file
 python -m uvicorn main:app --port 8000
 
 # 2. Frontend (new terminal)
@@ -40,7 +41,7 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:3000**. See [GUIDE.md](GUIDE.md) for a full walkthrough.
+Open **http://localhost:3000**. The app auto-detects your hardware — on NVIDIA machines it uses the GPU by default, and you can switch between GPU and CPU anytime from the sidebar's **Compute device** selector. See [GUIDE.md](GUIDE.md) for a full walkthrough.
 
 > The model and voices are downloaded to your HuggingFace cache on first run — only the first launch needs internet.
 

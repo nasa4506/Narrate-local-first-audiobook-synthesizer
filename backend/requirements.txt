@@ -1,6 +1,24 @@
-fastapi
-uvicorn[standard]
-torch
-numpy
-soundfile
-kokoro
+# Narrate backend — text-to-speech engine dependencies
+#
+# QUICK START
+# -----------
+#   NVIDIA GPU (CUDA) machine:
+#       pip install torch --index-url https://download.pytorch.org/whl/cu124
+#       pip install -r requirements.txt
+#
+#   CPU-only machine (works, but ~20-50x slower than GPU):
+#       pip install torch --index-url https://download.pytorch.org/whl/cpu
+#       pip install -r requirements.txt
+#
+#   Any machine (installs default torch wheel):
+#       pip install -r requirements.txt
+#
+# Python 3.10+ is recommended. Windows, macOS and Linux are all supported.
+
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+torch>=2.2
+numpy>=1.26
+soundfile>=0.12
+kokoro>=0.9

@@ -51,10 +51,11 @@ Open **http://localhost:3000**. The header should show the model badge and a **G
 
 In the sidebar:
 
+- **Compute device** — auto-detected on startup (GPU if an NVIDIA GPU is present, otherwise CPU). Switch anytime; the device dropdown is disabled while a job is generating. After switching, the model reloads on the new device (a few seconds on first switch).
 - **Language** — region/voice family
 - **Voice** — e.g. `af_heart` (Female, Clear & Expressive) or `am_adam` (Male, Deep)
 - **Speed** — 0.50× to 2.00×
-- **Parallel chapters** — how many chapters synthesize at once (1–8). Keep this at 2–4 for a laptop GPU.
+- **Parallel chapters** — how many chapters synthesize at once (1–8). Keep this at 2–4 for a laptop GPU, 1 for CPU.
 
 ### 2.3 Read the GPU meter
 
@@ -97,7 +98,9 @@ Everything is saved to your browser's localStorage:
 | `Cannot reach the TTS backend` | Start the backend (`python -m uvicorn main:app --port 8000`) — the UI reconnects automatically |
 | `Port 8000 already in use` | An old instance is running: `Ctrl+C` it, or on Windows kill it with `taskkill /F /IM python.exe`, then restart |
 | `The previous generation job is no longer available` | The backend was restarted mid-job (jobs are in-memory). Your text is safe — press **Generate all** again |
-| Generation is very slow | You're on CPU, or too many parallel workers on a small GPU. Lower **Parallel chapters** to 1–2, or check the GPU badge in the header |
+| Generation is very slow | You're on CPU, or too many parallel workers on a small GPU. Lower **Parallel chapters** to 1–2, or switch to GPU in **Compute device** (check the header badge) |
+| No GPU badge in the header | The machine has no CUDA GPU — CPU mode is active (works, ~20–50× slower). The GPU meter shows "CPU mode" |
+| `Cannot switch device while a job is generating` | Wait for the current job to finish, then switch devices |
 | `CUDA out of memory` | Lower **Parallel chapters**; the GPU meter should show near-base usage with 1 worker |
 | Chapter stuck at `queued` | Queued chapters wait for a free worker — they start as soon as one finishes |
 | First-run download fails | Check internet access; retry once (downloads are resumable via the HuggingFace cache) |

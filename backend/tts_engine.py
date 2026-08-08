@@ -39,6 +39,39 @@ class TTSEngine:
     def cuda_available(self) -> bool:
         return torch.cuda.is_available()
 
+    def available_devices(self) -> list[dict]:
+        """List selectable compute devices (GPUs + CPU fallback)."""
+        devices = []
+        if torch.cuda.is_available():
+            count = torch.cuda.device_count()
+            for i in range(count):
+                name = torch.cuda.get_device_name(i)
+                devices.append({
+                    "device": f"cuda:{i}" if count > 1 else "cuda",
+                    "label": f"GPU — {name}",
+                })
+        devices.append({"device": "cpu", "label": "CPU"})
+        return devices
+
+    def set_device(self, device: str) -> None:
+        """Switch the compute device used for synthesis. Clears cached pipelines."""
+        valid = {d["device"] for d in self.available_devices()}
+        if device not in valid:
+            raise ValueError(f"Unsupported device: {device}")
+        if device == self._device:
+            return
+        self._pipelines.clear()
+        if self.cuda_available:
+            torch.cuda.empty_cache()
+        self._device = device
+        self._base_bytes = None
+        if device.startswith("cuda"):
+            idx = int(device.split(":")[-1]) if ":" in device else 0
+            self._gpu_name = torch.cuda.get_device_name(idx)
+        else:
+            self._gpu_name = None
+        logger.info(f"Switched compute device to '{device}'")
+
     def _get_pipeline(self, lang_code: str) -> KPipeline:
         """Get or create a cached pipeline for the given language."""
         cache_key = f"{lang_code}_{self._device}"
@@ -55,6 +88,7 @@ class TTSEngine:
         if not self.cuda_available:
             return {
                 "cuda_available": False,
+                "device": self._device,
                 "gpu_name": None,
                 "total_bytes": None,
                 "free_bytes": None,
@@ -65,6 +99,7 @@ class TTSEngine:
         free, total = torch.cuda.mem_get_info()
         return {
             "cuda_available": True,
+            "device": self._device,
             "gpu_name": self._gpu_name,
             "total_bytes": total,
             "free_bytes": free,

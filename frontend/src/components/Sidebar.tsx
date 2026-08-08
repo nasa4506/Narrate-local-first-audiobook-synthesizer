@@ -1,6 +1,6 @@
 "use client";
 
-import { VoiceCatalog, GPUStats } from "@/lib/api";
+import { VoiceCatalog, GPUStats, DeviceInfo } from "@/lib/api";
 import GpuMeter from "./GpuMeter";
 import styles from "./Sidebar.module.css";
 
@@ -17,6 +17,10 @@ interface SidebarProps {
   gpuStats: GPUStats | null;
   readyChapterCount: number;
   isGenerating: boolean;
+  devices: DeviceInfo[] | null;
+  selectedDevice: string | null;
+  deviceBusy: boolean;
+  onDeviceChange: (device: string) => void;
 }
 
 export default function Sidebar({
@@ -32,6 +36,10 @@ export default function Sidebar({
   gpuStats,
   readyChapterCount,
   isGenerating,
+  devices,
+  selectedDevice,
+  deviceBusy,
+  onDeviceChange,
 }: SidebarProps) {
   if (!voices) return null;
 
@@ -51,6 +59,30 @@ export default function Sidebar({
     <aside className={styles.sidebar}>
       <div className={styles.sticky}>
         <div className={styles.sectionTitle}>Narrator</div>
+
+        {devices && devices.length > 0 && (
+          <div className={styles.group}>
+            <label className={styles.label} htmlFor="device-select">
+              Compute device
+            </label>
+            <select
+              id="device-select"
+              className={`input ${styles.select}`}
+              value={selectedDevice ?? devices[0]?.device}
+              onChange={(e) => onDeviceChange(e.target.value)}
+              disabled={deviceBusy || isGenerating}
+            >
+              {devices.map((d) => (
+                <option key={d.device} value={d.device}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+            {deviceBusy && (
+              <div className={styles.hint}>Switching device — reloading model…</div>
+            )}
+          </div>
+        )}
 
         <div className={styles.group}>
           <label className={styles.label} htmlFor="lang-select">

@@ -27,12 +27,24 @@ export interface HealthInfo {
   model: string;
   cuda_available: boolean;
   gpu_name: string | null;
+  device: string;
   sample_rate: number;
   total_voices: number;
 }
 
+export interface DeviceInfo {
+  device: string;
+  label: string;
+}
+
+export interface DevicesResponse {
+  devices: DeviceInfo[];
+  current: string;
+}
+
 export interface GPUStats {
   cuda_available: boolean;
+  device: string;
   gpu_name: string | null;
   total_bytes: number | null;
   free_bytes: number | null;
@@ -101,6 +113,29 @@ export async function fetchVoices(): Promise<VoiceCatalog> {
 export async function fetchGpuStats(): Promise<GPUStats> {
   const res = await apiFetch(`${API_BASE}/api/gpu`);
   if (!res.ok) throw new Error("Failed to fetch GPU stats");
+  return res.json();
+}
+
+export async function fetchDevices(): Promise<DevicesResponse> {
+  const res = await apiFetch(`${API_BASE}/api/devices`);
+  if (!res.ok) throw new Error("Failed to fetch devices");
+  return res.json();
+}
+
+export async function setDevice(device: string): Promise<{ device: string }> {
+  const res = await apiFetch(
+    `${API_BASE}/api/device`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device }),
+    },
+    30000
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Device switch failed" }));
+    throw new Error(errorMessage(err.detail, "Device switch failed"));
+  }
   return res.json();
 }
 

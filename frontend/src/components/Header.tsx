@@ -21,15 +21,15 @@ export default function Header({ health }: HeaderProps) {
             <span className={`${styles.dot} ${styles.dotGreen}`} />
             {health.model}
           </span>
-          {health.cuda_available && health.gpu_name ? (
-            <span className={styles.badge} title={health.gpu_name}>
-              <span className={`${styles.dot} ${styles.dotWhite}`} />
-              GPU
-            </span>
-          ) : (
+          {health.device === "cpu" ? (
             <span className={styles.badge}>
               <span className={`${styles.dot} ${styles.dotGray}`} />
               CPU
+            </span>
+          ) : (
+            <span className={styles.badge} title={health.gpu_name ?? undefined}>
+              <span className={`${styles.dot} ${styles.dotWhite}`} />
+              {health.device === "cuda" ? "GPU" : health.device}
             </span>
           )}
           <span className={styles.badge}>{health.sample_rate / 1000}kHz</span>

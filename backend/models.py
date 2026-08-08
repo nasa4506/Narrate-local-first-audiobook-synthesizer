@@ -84,11 +84,17 @@ class AudiobookStatus(BaseModel):
     chapters: list[ChapterStatus]
 
 
+class DeviceRequest(BaseModel):
+    """Request body for switching the compute device."""
+    device: str = Field(..., description="Device to use, e.g. 'cuda', 'cuda:1' or 'cpu'")
+
+
 class HealthResponse(BaseModel):
     """Response for the health check endpoint."""
     status: str
     model: str
     cuda_available: bool
     gpu_name: Optional[str] = None
+    device: str = "cpu"
     sample_rate: int = 24000
     total_voices: int
