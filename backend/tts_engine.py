@@ -4,15 +4,112 @@ Handles model loading, caching, and audio generation.
 """
 
 import io
+import re
 import time
 import torch
 import numpy as np
 import soundfile as sf
+import huggingface_hub
+import kokoro.pipeline as _kokoro_pipeline
 from kokoro import KPipeline
 from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)
+
+KOKORO_REPO_ID = "hexgrad/Kokoro-82M"
+
+
+def _cached_path(repo_id: str, filename: str) -> Optional[str]:
+    """Local cache path for a repo file, or None if not cached."""
+    cached = huggingface_hub.try_to_load_from_cache(repo_id, filename)
+    return cached if isinstance(cached, str) and cached else None
+
+
+def _download_offline_safe(repo_id: str, filename: str, *args, **kwargs) -> str:
+    """hf_hub_download that prefers the local cache and only hits the network
+    when the file is missing — synthesis then works fully offline."""
+    cached = _cached_path(repo_id, filename)
+    if cached is not None:
+        return cached
+    try:
+        return huggingface_hub.hf_hub_download(repo_id, filename, *args, **kwargs)
+    except Exception:
+        cached = _cached_path(repo_id, filename)
+        if cached is not None:
+            logger.warning(f"Offline: using cached copy of '{filename}'")
+            return cached
+        raise RuntimeError(
+            f"'{filename}' is not cached locally and could not be downloaded "
+            "from HuggingFace. Run once with internet access to download the "
+            "model and voice packs."
+        )
+
+
+# Kokoro's pipeline resolves downloads through this module-level name — swap in
+# the offline-safe version so voices can be loaded without internet.
+_kokoro_pipeline.hf_hub_download = _download_offline_safe
+
+
+def preload_voices() -> None:
+    """Best-effort download of every voice pack (once, on startup)."""
+    from voice_catalog import VOICE_CATALOG
+
+    all_voices = [v for data in VOICE_CATALOG.values() for v in data["voices"]]
+
+    def download_missing(voices: list[str]) -> list[str]:
+        still_missing = []
+        for voice in voices:
+            filename = f"voices/{voice}.pt"
+            if _cached_path(KOKORO_REPO_ID, filename) is not None:
+                continue
+            try:
+                huggingface_hub.hf_hub_download(repo_id=KOKORO_REPO_ID, filename=filename)
+            except Exception as e:
+                logger.warning(f"Could not preload voice '{voice}': {e}")
+                still_missing.append(voice)
+            time.sleep(0.6)  # be gentle with HuggingFace rate limits
+        return still_missing
+
+    missing = download_missing(all_voices)
+    if missing:
+        # second pass after a pause (transient rate limits usually clear)
+        time.sleep(10)
+        missing = download_missing(missing)
+
+    cached = sum(1 for v in all_voices if _cached_path(KOKORO_REPO_ID, f"voices/{v}.pt") is not None)
+    logger.info(f"Voice preload finished: {cached}/{len(all_voices)} cached, {len(missing)} missing")
+
+
+def voice_cache_status() -> dict:
+    """Which voice packs are already available in the local HF cache."""
+    from voice_catalog import VOICE_CATALOG
+
+    cached, missing = [], []
+    for lang, data in VOICE_CATALOG.items():
+        for voice in data["voices"]:
+            path = _cached_path(KOKORO_REPO_ID, f"voices/{voice}.pt")
+            if path is not None:
+                cached.append(voice)
+            else:
+                missing.append(voice)
+    return {"total": len(cached) + len(missing), "cached": cached, "missing": missing}
+
+
+def normalize_text(text: str) -> str:
+    """
+    Normalize whitespace before synthesis so pasted text narrates smoothly.
+
+    Kokoro splits input on line breaks — pasted text with a line per sentence
+    becomes hundreds of tiny segments with artificial pauses/artifacts. Here:
+      - CRLF/CR -> LF
+      - single line breaks within a paragraph  -> spaces
+      - blank lines (paragraph breaks)         -> kept as \n\n (natural pause)
+    """
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    paragraphs = re.split(r"\n{2,}", text)
+    paragraphs = [re.sub(r"\s+", " ", p).strip() for p in paragraphs]
+    return "\n\n".join(p for p in paragraphs if p)
 
 
 class TTSEngine:
@@ -132,7 +229,7 @@ class TTSEngine:
         """
         pipeline = self._get_pipeline(lang_code)
         t0 = time.time()
-        generator = pipeline(text, voice=voice, speed=speed)
+        generator = pipeline(normalize_text(text), voice=voice, speed=speed)
         all_audio = []
         all_phonemes = []
         total_samples = 0

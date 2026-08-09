@@ -104,6 +104,8 @@ Everything is saved to your browser's localStorage:
 | `CUDA out of memory` | Lower **Parallel chapters**; the GPU meter should show near-base usage with 1 worker |
 | Chapter stuck at `queued` | Queued chapters wait for a free worker — they start as soon as one finishes |
 | First-run download fails | Check internet access; retry once (downloads are resumable via the HuggingFace cache) |
+| `'voices/…pt' is not cached locally and could not be downloaded` | That voice was never downloaded and you're offline. Run once with internet (the backend preloads **all 41 voices** at startup), or check readiness at `http://localhost:8000/api/voices/cache` |
+| Offline usage | The model (312 MB) and all preloaded voices are cached under `~/.cache/huggingface/` — after one online run, synthesis works fully offline |
 | Text rejected with "String should have at most 100000 characters" | Chapters are capped at 100,000 chars — split the chapter in two |
 | Hydration error in console | Hard-refresh (Ctrl+Shift+R); this was a known issue fixed by deferring localStorage restore until after hydration |
 

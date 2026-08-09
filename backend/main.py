@@ -31,7 +31,7 @@ from models import (
     DeviceRequest,
     HealthResponse,
 )
-from tts_engine import engine
+from tts_engine import engine, preload_voices, voice_cache_status
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,6 +43,8 @@ async def lifespan(app: FastAPI):
     logger.info("Pre-warming default pipeline (lang_code='a')...")
     engine._get_pipeline("a")
     logger.info("Pipeline ready.")
+    # Download all voice packs in the background so synthesis works offline later.
+    threading.Thread(target=preload_voices, daemon=True).start()
     threading.Thread(target=_job_monitor, daemon=True).start()
     yield
 
@@ -250,6 +252,12 @@ async def gpu_stats():
 async def get_voices():
     """Return the full voice catalog grouped by language."""
     return VOICE_CATALOG
+
+
+@app.get("/api/voices/cache")
+async def get_voice_cache():
+    """Which voice packs are already cached locally (offline readiness)."""
+    return voice_cache_status()
 
 
 @app.get("/api/presets")
